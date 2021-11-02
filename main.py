@@ -5,13 +5,13 @@ from core.youtube_api import search, fetch_video_details
 
 console = Console()
 
-# with console.status("[bold green]Fetching search results...") as status:
-#     for data in search(keyword="python"):
-#         num_fetched = len(data["items"])
+with console.status("[bold green]Fetching search results...") as status:
+    for data in search(keyword="python"):
+        num_fetched = len(data["items"])
 
-#         path = dump(data=data, data_type=DataType.YOUTUBE_SEARCH)
+        path = dump(data=data, data_type=DataType.YOUTUBE_SEARCH)
 
-#         console.log(f"Fetched {num_fetched} results and saved to {path}")
+        console.log(f"Fetched {num_fetched} results and saved to {path}")
 
 
 with console.status("[bold green]Fetching video details...") as status:
