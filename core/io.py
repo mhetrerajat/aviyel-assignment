@@ -3,7 +3,7 @@ import os
 import tempfile
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import List
 from uuid import uuid4
 
 
@@ -12,7 +12,7 @@ class DataType(Enum):
     YOUTUBE_VIDEO = "ytvideo"
 
 
-def dump(data: Union[Dict, List], data_type: DataType) -> str:
+def dump(data: List, data_type: DataType) -> str:
     """Write data in specified directory in /tmp/"""
 
     DATA_DIR = tempfile.mkdtemp(dir="/tmp/", prefix=f"aviyel__{data_type.value}__")

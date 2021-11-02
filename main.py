@@ -23,7 +23,7 @@ with console.status("[bold green]Fetching video details...") as status:
             if video_id:
                 video_details = fetch_video_details(video_id=video_id)
 
-                path = dump(data=video_details, data_type=DataType.YOUTUBE_VIDEO)
+                path = dump(data=[video_details], data_type=DataType.YOUTUBE_VIDEO)
 
                 console.log(f"Fetched video details and stored at {path}")
             else:
