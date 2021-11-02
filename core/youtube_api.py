@@ -43,7 +43,7 @@ def search(keyword: str, max_results: int = 100) -> Generator:
         yield response
 
 
-def video(video_id: str) -> Dict:
+def fetch_video_details(video_id: str) -> Dict:
     """Return video details using its youtube video id"""
     youtube = _get_youtube_client()
     request = youtube.videos().list(
