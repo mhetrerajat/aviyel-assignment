@@ -1,6 +1,6 @@
 from rich.console import Console
 
-from core.io import DataType, dump, loads
+from core.io import DataType, dump, loads, add_delete_marker
 from core.youtube_api import search, fetch_video_details
 from core.analyze import cleanup_video_data
 
@@ -29,8 +29,13 @@ with console.status("[bold green]Fetching video details...") as status:
         console.log(f"Fetched video details and stored at {path}")
 
 with console.status("[bold green] Preprocessing and cleaning up data..") as status:
-    ref_video_data = loads(data_type=DataType.YOUTUBE_VIDEO, as_dataframe=True)
-    for video_df in ref_video_data:
+    ref_video_data = loads(
+        data_type=DataType.YOUTUBE_VIDEO, as_dataframe=True, return_file_path=True
+    )
+    for (video_df, input_file_path) in ref_video_data:
         df = cleanup_video_data(video_df)
         path = dump(data=df, data_type=DataType.PREPROCESSED)
+    
+    add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
+    add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
     console.log(f"Stored preprocessed data at {path}")
