@@ -7,6 +7,7 @@ from core.analyze import (
     compute_popular_videos_by_tag,
     compute_videos_per_tag,
     compute_unpopular_videos_by_tag,
+    compute_avg_video_duration_by_tag,
 )
 from core.io import DataType, add_delete_marker, dump, loads
 from core.youtube_api import fetch_video_details, search
@@ -89,6 +90,15 @@ def unpopular_videos_per_tag():
     """Compute Tag with least videos i.e most unpopular tags"""
     df = compute_unpopular_videos_by_tag()
     path = "/tmp/unpopular_videos_per_tag.csv"
+    df.to_csv(path)
+    console.log(f"Exported to {path}")
+
+
+@metrics.command()
+def avg_video_duration_per_tag():
+    """Compute Tag vs Avg duration of videos"""
+    df = compute_avg_video_duration_by_tag()
+    path = "/tmp/avg_video_duration_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
 
