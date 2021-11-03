@@ -18,14 +18,11 @@ with console.status("[bold green]Fetching video details...") as status:
     ref_search_data = loads(data_type=DataType.YOUTUBE_SEARCH)
     for search_data in ref_search_data:
         items = search_data.get("items", [])
+        video_data = []
         for video in items:
             video_id = video.get("id", {}).get("videoId")
-            if video_id:
-                video_details = fetch_video_details(video_id=video_id)
+            video_details = fetch_video_details(video_id=video_id)
+            video_data.append(video_details)
 
-                path = dump(data=[video_details], data_type=DataType.YOUTUBE_VIDEO)
-
-                console.log(f"Fetched video details and stored at {path}")
-            else:
-                # TODO: Remove this condition by fetching only video searches
-                console.log("Skipped search result as its not a video")
+        path = dump(data=video_data, data_type=DataType.YOUTUBE_VIDEO)
+        console.log(f"Fetched video details and stored at {path}")
