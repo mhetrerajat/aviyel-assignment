@@ -1,8 +1,8 @@
 import re
-from typing import Dict
-import numpy as np
 
+import numpy as np
 import pandas as pd
+import pyarrow.dataset as ds
 
 
 def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -19,50 +19,66 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# df = pd.read_json(
-#     "/tmp/aviyel__ytvideo__z3tonovj/038d3ee19e97463fb219849c0eb8f214.json"
-# )
-# df = df.explode("items")
+def compute_videos_per_tag():
+    # TODO: Add common interface to load parquet data files
+    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
+    table = dataset.scanner(columns=["id", "snippet.tags"]).to_table()
+    df = (
+        table.to_pandas()
+        .rename(columns={"snippet.tags": "tags"})
+        .drop_duplicates(subset=["id", "tags"])
+    )
+    df = (
+        df.groupby(by=["tags"], as_index=False)
+        .agg({"id": pd.Series.nunique})
+        .rename(columns={"id": "n_videos"})
+    )
+    return df
 
-# df = pd.json_normalize(df["items"])
 
-# tagsdf = df[["id", "snippet.tags"]].rename(columns={"snippet.tags": "tags"})
-# tagsdf = tagsdf.explode("tags")
-
-# # Tag Vs number videos
-# tagsdf.groupby(by=["tags"]).agg({"id": pd.Series.nunique})
+def compute_popular_videos_by_tag():
+    return compute_videos_per_tag().sort_values(by=["n_videos"], ascending=[False])
 
 
-# # Tag with most videos
-# tagsdf.groupby(by=["tags"], as_index=False).agg({"id": pd.Series.nunique}).sort_values(
-#     by=["id"], ascending=[False]
-# )
+def compute_unpopular_videos_by_tag():
+    return compute_videos_per_tag().sort_values(by=["n_videos"], ascending=[True])
 
-# # Tag with least videos
-# tagsdf.groupby(by=["tags"], as_index=False).agg({"id": pd.Series.nunique}).sort_values(
-#     by=["id"], ascending=[True]
-# )
 
-# # Tag vs Avg duration of videos
-# cdf = df[["id", "snippet.tags", "contentDetails.duration"]].rename(
-#     columns={"snippet.tags": "tags", "contentDetails.duration": "videoDuration"}
-# )
-# cdf = cdf.explode("tags")
-# ISO_8601 = re.compile(
-#     "P"
-#     "(?:T"
-#     "(?:(?P<hours>\d+)H)?"
-#     "(?:(?P<minutes>\d+)M)?"
-#     "(?:(?P<seconds>\d+)S)?"
-#     ")?"
-# )
-# cdf["parsedDuration"] = cdf.apply(
-#     lambda x: ISO_8601.match(x["videoDuration"]).groupdict(), axis=1
-# )
-# _cdf = cdf[["id", "tags"]].join(pd.json_normalize(cdf.parsedDuration))
-# _cdf.fillna(0, inplace=True)
-# _cdf = _cdf.astype(dtype={"seconds": np.int16, "minutes": np.int16, "hours": np.int16})
-# _cdf["duration"] = _cdf["seconds"] + (_cdf["minutes"] * 60) + (_cdf["hours"] * 60 * 60)
-# _cdf.groupby(by=["tags"], as_index=False).agg({"duration": np.average}).sort_values(
-#     by=["duration"], ascending=[False]
-# )
+def compute_avg_video_duration_by_tag():
+    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
+    table = dataset.scanner(
+        columns=["id", "snippet.tags", "contentDetails.duration"]
+    ).to_table()
+    df = (
+        table.to_pandas()
+        .rename(
+            columns={"snippet.tags": "tags", "contentDetails.duration": "videoDuration"}
+        )
+        .drop_duplicates(subset=["id", "tags", "videoDuration"])
+    )
+
+    ISO_8601 = re.compile(
+        "P"
+        "(?:T"
+        "(?:(?P<hours>\d+)H)?"
+        "(?:(?P<minutes>\d+)M)?"
+        "(?:(?P<seconds>\d+)S)?"
+        ")?"
+    )
+    df["parsedDuration"] = df.apply(
+        lambda x: ISO_8601.match(x["videoDuration"]).groupdict(), axis=1
+    )
+
+    df = df[["id", "tags"]].join(pd.json_normalize(df.parsedDuration))
+    df.fillna(value={col: 0 for col in ["hours", "minutes", "seconds"]}, inplace=True)
+    df = df.astype(
+        dtype={"seconds": np.uint64, "minutes": np.uint64, "hours": np.uint64}
+    )
+    df = df.assign(duration=0).astype(dtype={"duration": np.uint64})
+    df["duration"] = df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
+    df = (
+        df.groupby(by=["tags"], as_index=False)
+        .agg({"duration": np.mean})
+        .sort_values(by=["duration"], ascending=[False])
+    )
+    return df
