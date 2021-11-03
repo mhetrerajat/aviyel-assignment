@@ -1,10 +1,16 @@
 from rich.console import Console
+from rich.markdown import Markdown
 
-from core.io import DataType, dump, loads, add_delete_marker
-from core.youtube_api import search, fetch_video_details
 from core.analyze import cleanup_video_data
+from core.io import DataType, add_delete_marker, dump, loads
+from core.youtube_api import fetch_video_details, search
 
 console = Console()
+
+title = """
+    Aviyel Data Assignment
+"""
+console.print(Markdown(title))
 
 with console.status("[bold green]Fetching search results...") as status:
     for data in search(keyword="python"):
@@ -35,7 +41,7 @@ with console.status("[bold green] Preprocessing and cleaning up data..") as stat
     for (video_df, input_file_path) in ref_video_data:
         df = cleanup_video_data(video_df)
         path = dump(data=df, data_type=DataType.PREPROCESSED)
-    
+
     add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
     add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
     console.log(f"Stored preprocessed data at {path}")
