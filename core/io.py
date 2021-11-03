@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import List
 from uuid import uuid4
 
+import pandas as pd
+
 
 class DataType(Enum):
     YOUTUBE_SEARCH = "ytsearch"
@@ -25,10 +27,13 @@ def dump(data: List, data_type: DataType) -> str:
     return path
 
 
-def loads(data_type: DataType) -> str:
+def loads(data_type: DataType, as_dataframe: bool = False) -> str:
     """Loads all files one by one for specified data type"""
     dirs = Path("/tmp/").glob(f"aviyel__{data_type.value}*")
     for dir in dirs:
         for path in dir.glob("**/*"):
-            with open(path, "r") as f:
-                yield json.loads(f.read())
+            if as_dataframe:
+                yield pd.read_json(path)
+            else:
+                with open(path, "r") as f:
+                    yield json.loads(f.read())
