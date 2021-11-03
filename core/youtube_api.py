@@ -14,10 +14,14 @@ def _get_youtube_client():
     return build("youtube", "v3", developerKey=_get_google_api_key())
 
 
-def search(keyword: str, max_results: int = 100) -> Generator:
+def search(
+    keyword: str, max_results: int = 100, max_per_request: int = 25
+) -> Generator:
     """Return search results for specified keywords using YT Data API"""
 
     youtube = _get_youtube_client()
+
+    max_per_request = min(max_results, max_per_request)
 
     terminate_pagination = False
     next_page_token = None
@@ -27,7 +31,8 @@ def search(keyword: str, max_results: int = 100) -> Generator:
         params = {
             "q": keyword,
             "part": "snippet",
-            "maxResults": 25,
+            "type": "video",
+            "maxResults": max_per_request,
         }
         if next_page_token:
             params["pageToken"] = next_page_token
@@ -37,7 +42,7 @@ def search(keyword: str, max_results: int = 100) -> Generator:
 
         next_page_token = response.get("nextPageToken")
 
-        total_fetched += 25
+        total_fetched += max_per_request
 
         terminate_pagination = not next_page_token or total_fetched >= max_results
         yield response
