@@ -4,6 +4,15 @@ import numpy as np
 import pandas as pd
 import pyarrow.dataset as ds
 
+ISO_8601 = re.compile(
+    "P"
+    "(?:T"
+    "(?:(?P<hours>\d+)H)?"
+    "(?:(?P<minutes>\d+)M)?"
+    "(?:(?P<seconds>\d+)S)?"
+    ")?"
+)
+
 
 def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     # Unpack items to have one row for each video
@@ -15,6 +24,20 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
 
     # Unpack topic categories
     df = df.explode("topicDetails.topicCategories")
+
+    # Handle missing tags
+    df = df.fillna(value={"snippet.tags": "unknown-marker"})
+
+    # Preprocess duration column
+    df["parsedDuration"] = df.apply(
+        lambda x: ISO_8601.match(x["contentDetails.duration"]).groupdict(), axis=1
+    )
+    df = df.join(pd.json_normalize(df.parsedDuration))
+    df.fillna(value={col: 0 for col in ["hours", "minutes", "seconds"]}, inplace=True)
+    df = df.astype(
+        dtype={"seconds": np.uint64, "minutes": np.uint64, "hours": np.uint64}
+    )
+    df["duration"] = df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
 
     return df
 
@@ -46,36 +69,13 @@ def compute_unpopular_videos_by_tag():
 
 def compute_avg_video_duration_by_tag():
     dataset = ds.dataset("/tmp/aviyel__preprocessed/")
-    table = dataset.scanner(
-        columns=["id", "snippet.tags", "contentDetails.duration"]
-    ).to_table()
+    table = dataset.scanner(columns=["id", "snippet.tags", "duration"]).to_table()
     df = (
         table.to_pandas()
-        .rename(
-            columns={"snippet.tags": "tags", "contentDetails.duration": "videoDuration"}
-        )
-        .drop_duplicates(subset=["id", "tags", "videoDuration"])
+        .rename(columns={"snippet.tags": "tags"})
+        .drop_duplicates(subset=["id", "tags", "duration"])
     )
 
-    ISO_8601 = re.compile(
-        "P"
-        "(?:T"
-        "(?:(?P<hours>\d+)H)?"
-        "(?:(?P<minutes>\d+)M)?"
-        "(?:(?P<seconds>\d+)S)?"
-        ")?"
-    )
-    df["parsedDuration"] = df.apply(
-        lambda x: ISO_8601.match(x["videoDuration"]).groupdict(), axis=1
-    )
-
-    df = df[["id", "tags"]].join(pd.json_normalize(df.parsedDuration))
-    df.fillna(value={col: 0 for col in ["hours", "minutes", "seconds"]}, inplace=True)
-    df = df.astype(
-        dtype={"seconds": np.uint64, "minutes": np.uint64, "hours": np.uint64}
-    )
-    df = df.assign(duration=0).astype(dtype={"duration": np.uint64})
-    df["duration"] = df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"duration": np.mean})
