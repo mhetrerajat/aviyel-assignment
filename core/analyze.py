@@ -4,12 +4,27 @@ import numpy as np
 
 import pandas as pd
 
+
+def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
+    # Unpack items to have one row for each video
+    df = df.explode("items")
+    df = pd.json_normalize(df["items"])
+
+    # Unpack tags to have one tag for one video in each row
+    df = df.explode("snippet.tags")
+
+    # Unpack topic categories
+    df = df.explode("topicDetails.topicCategories")
+
+    return df
+
+
 df = pd.read_json(
     "/tmp/aviyel__ytvideo__z3tonovj/038d3ee19e97463fb219849c0eb8f214.json"
 )
 df = df.explode("items")
 
-df = pd.json_normalize(df.items)
+df = pd.json_normalize(df["items"])
 
 tagsdf = df[["id", "snippet.tags"]].rename(columns={"snippet.tags": "tags"})
 tagsdf = tagsdf.explode("tags")
