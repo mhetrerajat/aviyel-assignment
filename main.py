@@ -4,14 +4,14 @@ from rich.markdown import Markdown
 
 from core.analyze import (
     cleanup_video_data,
-    compute_popular_videos_by_tag,
-    compute_videos_per_tag,
-    compute_unpopular_videos_by_tag,
     compute_avg_video_duration_by_tag,
-    compute_most_video_time_tag,
     compute_least_video_time_tag,
+    compute_most_video_time_tag,
+    compute_popular_videos_by_tag,
+    compute_unpopular_videos_by_tag,
+    compute_videos_per_tag,
 )
-from core.io import DataType, add_delete_marker, dump, loads
+from core.io import DataType, add_delete_marker, dump, load_preprocessed_data, loads
 from core.youtube_api import fetch_video_details, search
 
 console = Console()
@@ -78,7 +78,8 @@ def metrics():
 @metrics.command()
 def videos_per_tag():
     """Compute Tags Vs number of videos"""
-    df = compute_videos_per_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
+    df = compute_videos_per_tag(base_df)
     path = "/tmp/videos_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
@@ -87,7 +88,8 @@ def videos_per_tag():
 @metrics.command()
 def popular_videos_per_tag():
     """Compute Tag with most videos i.e most popular tags"""
-    df = compute_popular_videos_by_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
+    df = compute_popular_videos_by_tag(base_df)
     path = "/tmp/popular_videos_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
@@ -96,7 +98,8 @@ def popular_videos_per_tag():
 @metrics.command()
 def unpopular_videos_per_tag():
     """Compute Tag with least videos i.e most unpopular tags"""
-    df = compute_unpopular_videos_by_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
+    df = compute_unpopular_videos_by_tag(base_df)
     path = "/tmp/unpopular_videos_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
@@ -105,7 +108,8 @@ def unpopular_videos_per_tag():
 @metrics.command()
 def avg_video_duration_per_tag():
     """Compute Tag vs Avg duration of videos"""
-    df = compute_avg_video_duration_by_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
+    df = compute_avg_video_duration_by_tag(base_df)
     path = "/tmp/avg_video_duration_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
@@ -114,14 +118,16 @@ def avg_video_duration_per_tag():
 @metrics.command()
 def most_video_time_tag():
     """Compute Tag with most video time"""
-    df = compute_most_video_time_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
+    df = compute_most_video_time_tag(base_df)
     console.log(df.head(1))
 
 
 @metrics.command()
 def least_video_time_tag():
     """Compute Tag with least video time"""
-    df = compute_least_video_time_tag()
+    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
+    df = compute_least_video_time_tag(base_df)
     console.log(df.head(1))
 
 

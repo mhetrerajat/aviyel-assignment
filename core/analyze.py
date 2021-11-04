@@ -8,8 +8,6 @@ from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from core.io import load_preprocessed_data
-
 ISO_8601 = re.compile(
     "P"
     "(?:T"
@@ -97,9 +95,8 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def compute_videos_per_tag():
-    df = load_preprocessed_data(columns=["id", "snippet.tags"])
-    df = df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
+def compute_videos_per_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = base_df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
         subset=["id", "tags"]
     )
 
@@ -111,24 +108,27 @@ def compute_videos_per_tag():
     return df
 
 
-def compute_popular_videos_by_tag():
-    return compute_videos_per_tag().sort_values(by=["n_videos"], ascending=[False])
+def compute_popular_videos_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    return compute_videos_per_tag(base_df).sort_values(
+        by=["n_videos"], ascending=[False]
+    )
 
 
-def compute_unpopular_videos_by_tag():
-    return compute_videos_per_tag().sort_values(by=["n_videos"], ascending=[True])
+def compute_unpopular_videos_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    return compute_videos_per_tag(base_df).sort_values(
+        by=["n_videos"], ascending=[True]
+    )
 
 
-def _compute_video_duration_by_tag():
-    df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
-    df = df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
+def _compute_video_duration_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = base_df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
         subset=["id", "tags", "duration"]
     )
     return df
 
 
-def compute_avg_video_duration_by_tag():
-    df = _compute_video_duration_by_tag()
+def compute_avg_video_duration_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = _compute_video_duration_by_tag(base_df)
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"duration": np.mean})
@@ -137,8 +137,8 @@ def compute_avg_video_duration_by_tag():
     return df
 
 
-def compute_most_video_time_tag():
-    df = _compute_video_duration_by_tag()
+def compute_most_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = _compute_video_duration_by_tag(base_df)
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"duration": np.sum})
@@ -147,8 +147,8 @@ def compute_most_video_time_tag():
     return df
 
 
-def compute_least_video_time_tag():
-    df = _compute_video_duration_by_tag()
+def compute_least_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = _compute_video_duration_by_tag(base_df)
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"duration": np.sum})
