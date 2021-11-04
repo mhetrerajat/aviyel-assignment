@@ -3,11 +3,12 @@ import string
 
 import numpy as np
 import pandas as pd
-import pyarrow.dataset as ds
 from gensim.parsing.porter import PorterStemmer
 from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+from core.io import load_preprocessed_data
 
 ISO_8601 = re.compile(
     "P"
@@ -97,14 +98,11 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_videos_per_tag():
-    # TODO: Add common interface to load parquet data files
-    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
-    table = dataset.scanner(columns=["id", "snippet.tags"]).to_table()
-    df = (
-        table.to_pandas()
-        .rename(columns={"snippet.tags": "tags"})
-        .drop_duplicates(subset=["id", "tags"])
+    df = load_preprocessed_data(columns=["id", "snippet.tags"])
+    df = df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
+        subset=["id", "tags"]
     )
+
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"id": pd.Series.nunique})
@@ -122,12 +120,9 @@ def compute_unpopular_videos_by_tag():
 
 
 def _compute_video_duration_by_tag():
-    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
-    table = dataset.scanner(columns=["id", "snippet.tags", "duration"]).to_table()
-    df = (
-        table.to_pandas()
-        .rename(columns={"snippet.tags": "tags"})
-        .drop_duplicates(subset=["id", "tags", "duration"])
+    df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
+    df = df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
+        subset=["id", "tags", "duration"]
     )
     return df
 

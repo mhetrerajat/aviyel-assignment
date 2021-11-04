@@ -4,11 +4,12 @@ import shutil
 import tempfile
 from enum import Enum, unique
 from pathlib import Path, PosixPath
-from typing import List, Optional, Union
+from typing import Generator, List, Optional, Union
 from uuid import uuid4
 
 import pandas as pd
 import pyarrow as pa
+import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
 
@@ -45,7 +46,13 @@ def dump(data: Union[List, pd.DataFrame], data_type: DataType) -> str:
     )
 
 
-def loads(data_type: DataType, as_dataframe: bool = False) -> str:
+def load_preprocessed_data(columns: List[str]) -> pd.DataFrame:
+    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
+    table = dataset.scanner(columns=columns).to_table()
+    return table.to_pandas()
+
+
+def loads(data_type: DataType, as_dataframe: bool = False) -> Generator:
     """Loads all files one by one for specified data type"""
     dirs = Path("/tmp/").glob(f"aviyel__{data_type.value}*")
     for dir in dirs:
