@@ -1,4 +1,8 @@
+from types import FunctionType
+from typing import List
+
 import click
+import pandas as pd
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -129,6 +133,42 @@ def least_video_time_tag():
     base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
     df = compute_least_video_time_tag(base_df)
     console.log(df.head(1))
+
+
+@metrics.command()
+def classify_videos():
+    """Groups tags into fixed categories and compute metrics"""
+    path = "/tmp/classify_videos.xlsx"
+
+    with console.status("[bold green]Compute metrics on categories...") as _:
+        with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
+
+            def _metric(metric_func: FunctionType, columns: List[str]):
+                assert "category" in columns
+                base_df = load_preprocessed_data(columns=columns)
+                base_df = base_df.rename(columns={"category": "snippet.tags"})
+
+                metric_name = metric_func.__name__.replace("compute_", "")
+                df = metric_func(base_df)
+                df.rename(columns={"tags": "category"}, inplace=True)
+
+                sheet_name = metric_name.replace("_", "-")
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            # Metrics
+            _metric(compute_videos_per_tag, columns=["id", "category"])
+            _metric(compute_popular_videos_by_tag, columns=["id", "category"])
+            _metric(compute_unpopular_videos_by_tag, columns=["id", "category"])
+            _metric(
+                compute_avg_video_duration_by_tag,
+                columns=["id", "category", "duration"],
+            )
+            _metric(compute_most_video_time_tag, columns=["id", "category", "duration"])
+            _metric(
+                compute_least_video_time_tag, columns=["id", "category", "duration"]
+            )
+
+    console.log(f"Exported to {path}")
 
 
 if __name__ == "__main__":
