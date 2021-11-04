@@ -1,8 +1,13 @@
 import re
+import string
 
 import numpy as np
 import pandas as pd
 import pyarrow.dataset as ds
+from gensim.parsing.porter import PorterStemmer
+from gensim.parsing.preprocessing import remove_stopwords
+from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 ISO_8601 = re.compile(
     "P"
@@ -39,7 +44,56 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     )
     df["duration"] = df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
 
+    # Compute category for the videos
+    cdf = _categorize_videos(df)
+    df = pd.merge(df, cdf, left_on=["id"], right_on=["vid"], how="left")
+
     return df
+
+
+def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
+    def _preprocess_text(text: str) -> str:
+        return (
+            remove_stopwords(text)
+            .translate(str.maketrans("", "", string.punctuation))
+            .translate(str.maketrans("", "", string.digits))
+            .lower()
+        )
+
+    required_cols = ["id", "snippet.tags"]
+    cdf = df[required_cols]
+
+    cdf["processedTag"] = cdf.apply(lambda x: x["snippet.tags"].split(" "), axis=1)
+    cdf = cdf.explode("processedTag")
+    cdf["processedTag"] = cdf.apply(
+        lambda x: _preprocess_text(x["processedTag"]),
+        axis=1,
+    )
+
+    def _stemmer(text: str) -> str:
+        stemmer = PorterStemmer()
+        return stemmer.stem_sentence(text)
+
+    cdf["stemmedTag"] = cdf.apply(lambda x: _stemmer(x["processedTag"]), axis=1)
+
+    cdf = cdf.drop_duplicates(subset=["id", "stemmedTag"])
+
+    vectorizer = TfidfVectorizer(analyzer="word", ngram_range=(1, 2))
+    word_matrix = vectorizer.fit_transform(cdf["stemmedTag"])
+
+    word_df = pd.DataFrame(
+        word_matrix.toarray(), columns=vectorizer.get_feature_names()
+    )
+    video_df = cdf[["id"]].rename(columns={"id": "vid"})
+    result = video_df.join(word_df)
+
+    kmeans = KMeans(n_clusters=8, max_iter=1000)
+    kmeans.fit(word_df)
+    result["category"] = kmeans.predict(word_df)
+
+    result = result[["vid", "category"]]
+
+    return result
 
 
 def compute_videos_per_tag():
