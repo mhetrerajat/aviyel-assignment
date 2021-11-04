@@ -14,6 +14,7 @@ from core.analyze import (
     compute_popular_videos_by_tag,
     compute_unpopular_videos_by_tag,
     compute_videos_per_tag,
+    compute_engagement_per_tag,
 )
 from core.io import DataType, add_delete_marker, dump, load_preprocessed_data, loads
 from core.youtube_api import fetch_video_details, search
@@ -167,6 +168,26 @@ def classify_videos():
             _metric(
                 compute_least_video_time_tag, columns=["id", "category", "duration"]
             )
+
+    console.log(f"Exported to {path}")
+
+
+@metrics.command()
+def engagement_per_tag():
+    """Compute engagement metrics per tag"""
+    required_cols = [
+        "id",
+        "snippet.tags",
+        "statistics.viewCount",
+        "statistics.likeCount",
+        "statistics.dislikeCount",
+        "statistics.favoriteCount",
+        "statistics.commentCount",
+    ]
+    base_df = load_preprocessed_data(columns=required_cols)
+    df = compute_engagement_per_tag(base_df)
+    path = "/tmp/engagement_per_tag.xlsx"
+    df.to_excel(path, sheet_name="metrics", index=False)
 
     console.log(f"Exported to {path}")
 

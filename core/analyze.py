@@ -150,6 +150,15 @@ def compute_most_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def compute_engagement_per_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    df = base_df.drop_duplicates(subset=["id", "snippet.tags"])
+    rename_cols = {x: x.split(".")[-1] for x in df.columns}
+    df = df.rename(columns=rename_cols)
+    df = df.drop(["id"], axis=1)
+    df = df.groupby(by=["tags"], as_index=False).agg(np.sum)
+    return df
+
+
 def compute_least_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
     df = _compute_video_duration_by_tag(base_df)
     df = (
