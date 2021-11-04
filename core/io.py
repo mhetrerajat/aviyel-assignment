@@ -45,9 +45,7 @@ def dump(data: Union[List, pd.DataFrame], data_type: DataType) -> str:
     )
 
 
-def loads(
-    data_type: DataType, as_dataframe: bool = False, return_file_path: bool = False
-) -> str:
+def loads(data_type: DataType, as_dataframe: bool = False) -> str:
     """Loads all files one by one for specified data type"""
     dirs = Path("/tmp/").glob(f"aviyel__{data_type.value}*")
     for dir in dirs:
@@ -58,7 +56,7 @@ def loads(
                 with open(path, "r") as f:
                     loaded_data = json.loads(f.read())
 
-            yield (loaded_data, path) if return_file_path else loaded_data
+            yield loaded_data
 
 
 def _add_delete_marker_for_file(file_path: Union[str, PosixPath]):

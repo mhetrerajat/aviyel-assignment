@@ -57,10 +57,8 @@ def raw():
 def preprocess():
     """Preprocess raw data and make them consumable for analysis"""
     with console.status("[bold green] Preprocessing and cleaning up data..") as status:
-        ref_video_data = loads(
-            data_type=DataType.YOUTUBE_VIDEO, as_dataframe=True, return_file_path=True
-        )
-        for (video_df, input_file_path) in ref_video_data:
+        ref_video_data = loads(data_type=DataType.YOUTUBE_VIDEO, as_dataframe=True)
+        for video_df in ref_video_data:
             df = cleanup_video_data(video_df)
             path = dump(data=df, data_type=DataType.PREPROCESSED)
 
