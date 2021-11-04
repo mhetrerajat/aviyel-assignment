@@ -8,6 +8,8 @@ from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
+pd.options.mode.chained_assignment = None
+
 ISO_8601 = re.compile(
     "P"
     "(?:T"
@@ -33,7 +35,7 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.fillna(value={"snippet.tags": "unknown-marker"})
 
     # Preprocess duration column
-    df["parsedDuration"] = df.apply(
+    df.loc[:, "parsedDuration"] = df.apply(
         lambda x: ISO_8601.match(x["contentDetails.duration"]).groupdict(), axis=1
     )
     df = df.join(pd.json_normalize(df.parsedDuration))
@@ -41,7 +43,9 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.astype(
         dtype={"seconds": np.uint64, "minutes": np.uint64, "hours": np.uint64}
     )
-    df["duration"] = df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
+    df.loc[:, "duration"] = (
+        df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
+    )
 
     # Compute category for the videos
     cdf = _categorize_videos(df)
@@ -62,18 +66,17 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     required_cols = ["id", "snippet.tags"]
     cdf = df[required_cols]
 
-    cdf["processedTag"] = cdf.apply(lambda x: x["snippet.tags"].split(" "), axis=1)
+    cdf.loc[:, "processedTag"] = cdf["snippet.tags"].map(lambda x: x.split(" "))
     cdf = cdf.explode("processedTag")
-    cdf["processedTag"] = cdf.apply(
-        lambda x: _preprocess_text(x["processedTag"]),
-        axis=1,
+    cdf.loc[:, "processedTag"] = cdf["processedTag"].map(
+        _preprocess_text,
     )
 
     def _stemmer(text: str) -> str:
         stemmer = PorterStemmer()
         return stemmer.stem_sentence(text)
 
-    cdf["stemmedTag"] = cdf.apply(lambda x: _stemmer(x["processedTag"]), axis=1)
+    cdf.loc[:, "stemmedTag"] = cdf.apply(lambda x: _stemmer(x["processedTag"]), axis=1)
 
     cdf = cdf.drop_duplicates(subset=["id", "stemmedTag"])
 
@@ -81,14 +84,14 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     word_matrix = vectorizer.fit_transform(cdf["stemmedTag"])
 
     word_df = pd.DataFrame(
-        word_matrix.toarray(), columns=vectorizer.get_feature_names()
+        word_matrix.toarray(), columns=vectorizer.get_feature_names_out()
     )
     video_df = cdf[["id"]].rename(columns={"id": "vid"})
     result = video_df.join(word_df)
 
     kmeans = KMeans(n_clusters=8, max_iter=1000)
     kmeans.fit(word_df)
-    result["category"] = kmeans.predict(word_df)
+    result.loc[:, "category"] = kmeans.predict(word_df)
 
     result = result[["vid", "category"]]
 
