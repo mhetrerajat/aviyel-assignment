@@ -67,7 +67,7 @@ def compute_unpopular_videos_by_tag():
     return compute_videos_per_tag().sort_values(by=["n_videos"], ascending=[True])
 
 
-def compute_avg_video_duration_by_tag():
+def _compute_video_duration_by_tag():
     dataset = ds.dataset("/tmp/aviyel__preprocessed/")
     table = dataset.scanner(columns=["id", "snippet.tags", "duration"]).to_table()
     df = (
@@ -75,10 +75,34 @@ def compute_avg_video_duration_by_tag():
         .rename(columns={"snippet.tags": "tags"})
         .drop_duplicates(subset=["id", "tags", "duration"])
     )
+    return df
 
+
+def compute_avg_video_duration_by_tag():
+    df = _compute_video_duration_by_tag()
     df = (
         df.groupby(by=["tags"], as_index=False)
         .agg({"duration": np.mean})
         .sort_values(by=["duration"], ascending=[False])
     )
+    return df
+
+
+def compute_most_video_time_tag():
+    df = _compute_video_duration_by_tag()
+    df = (
+        df.groupby(by=["tags"], as_index=False)
+        .agg({"duration": np.sum})
+        .sort_values(by=["duration"], ascending=[False])
+    ).head(1)
+    return df
+
+
+def compute_least_video_time_tag():
+    df = _compute_video_duration_by_tag()
+    df = (
+        df.groupby(by=["tags"], as_index=False)
+        .agg({"duration": np.sum})
+        .sort_values(by=["duration"], ascending=[True])
+    ).head(1)
     return df

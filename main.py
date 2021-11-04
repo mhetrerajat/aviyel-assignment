@@ -8,6 +8,8 @@ from core.analyze import (
     compute_videos_per_tag,
     compute_unpopular_videos_by_tag,
     compute_avg_video_duration_by_tag,
+    compute_most_video_time_tag,
+    compute_least_video_time_tag,
 )
 from core.io import DataType, add_delete_marker, dump, loads
 from core.youtube_api import fetch_video_details, search
@@ -101,6 +103,20 @@ def avg_video_duration_per_tag():
     path = "/tmp/avg_video_duration_per_tag.csv"
     df.to_csv(path)
     console.log(f"Exported to {path}")
+
+
+@metrics.command()
+def most_video_time_tag():
+    """Compute Tag with most video time"""
+    df = compute_most_video_time_tag()
+    console.log(df.head(1))
+
+
+@metrics.command()
+def least_video_time_tag():
+    """Compute Tag with least video time"""
+    df = compute_least_video_time_tag()
+    console.log(df.head(1))
 
 
 if __name__ == "__main__":
