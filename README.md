@@ -3,6 +3,16 @@
 ## Overview
 
 - Fetch details about atleast 300 videos using YouTube Data API
+- Compute following metrics
+  - Tags vs number videos i.e Number of videos per tag
+  - Tag with most videos
+  - Tag with least videos
+  - Tags vs Avg duration of videos
+  - Tag with most video time
+  - Tag with least video time
+- Classify videos into categories using the tags. Categories tags into groups. Compute above metrics for each category
+- Bonus
+  - Compute engagement metrics per tag. It includes view, like, dislike, favourite, comment counts
 
 ## Usage
 
