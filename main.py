@@ -25,7 +25,13 @@ def cli():
 @cli.command()
 def raw():
     """Fetches raw data using YouTube Data API"""
-    with console.status("[bold green]Fetching search results...") as status:
+
+    with console.status("[bold red] Truncate old data...") as _:
+        add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
+        add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
+        add_delete_marker(data_type=DataType.PREPROCESSED)
+
+    with console.status("[bold green]Fetching search results...") as _:
         for data in search(keyword="python"):
             num_fetched = len(data["items"])
 
@@ -33,7 +39,7 @@ def raw():
 
             console.log(f"Fetched {num_fetched} results and saved to {path}")
 
-    with console.status("[bold green]Fetching video details...") as status:
+    with console.status("[bold green]Fetching video details...") as _:
         ref_search_data = loads(data_type=DataType.YOUTUBE_SEARCH)
         for search_data in ref_search_data:
             items = search_data.get("items", [])
@@ -58,9 +64,11 @@ def preprocess():
             df = cleanup_video_data(video_df)
             path = dump(data=df, data_type=DataType.PREPROCESSED)
 
+        console.log(f"Stored preprocessed data at {path}")
+
+    with console.status("[bold red] Truncate old data...") as _:
         add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
         add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
-        console.log(f"Stored preprocessed data at {path}")
 
 
 @cli.group()
