@@ -3,16 +3,18 @@ from typing import Optional, List, Dict
 import pandas as pd
 
 from core import analyze
-from core.io import export, load_preprocessed_data
+from core.io import export
+from core.exceptions import InvalidMetric
 
 
 def get_metric(metric_name: str) -> pd.DataFrame:
 
+    if not ("tag" in metric_name or "category" in metric_name):
+        raise InvalidMetric(f"{metric_name} is an invalid metric name")
+
     func_name = f"compute_{metric_name}"
     func = getattr(analyze, func_name)
-
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
-    return func(base_df)
+    return func()
 
 
 def export_metric(

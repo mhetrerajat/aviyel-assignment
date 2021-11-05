@@ -7,11 +7,11 @@
 %metrics.videos-per-tag <- %data.preprocess
     python main.py metrics videos-per-tag
 
-%metrics.popular-videos-per-tag <- %data.preprocess
-    python main.py metrics popular-videos-per-tag
+%metrics.tag-with-most-videos <- %data.preprocess
+    python main.py metrics tag-with-most-videos
 
-%metrics.unpopular-videos-per-tag <- %data.preprocess
-    python main.py metrics unpopular-videos-per-tag
+%metrics.tag-with-least-videos <- %data.preprocess
+    python main.py metrics tag-with-least-videos
 
 %metrics.most-video-time-tag <- %data.preprocess
     python main.py metrics most-video-time-tag

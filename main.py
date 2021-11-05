@@ -1,31 +1,11 @@
-from types import FunctionType
-from typing import List
-
 import click
-import pandas as pd
 from rich.console import Console
 from rich.markdown import Markdown
 
-from core.analyze import (
-    cleanup_video_data,
-    compute_avg_video_duration_by_tag,
-    compute_least_video_time_tag,
-    compute_most_video_time_tag,
-    compute_popular_videos_by_tag,
-    compute_unpopular_videos_by_tag,
-    compute_videos_per_tag,
-    compute_engagement_per_tag,
-)
-from core.io import (
-    DataType,
-    add_delete_marker,
-    dump,
-    load_preprocessed_data,
-    loads,
-    export,
-)
-from core.youtube_api import fetch_video_details, search
+from core.analyze import cleanup_video_data
 from core.facade import export_metric
+from core.io import DataType, add_delete_marker, dump, loads
+from core.youtube_api import fetch_video_details, search
 
 console = Console()
 
@@ -96,81 +76,56 @@ def videos_per_tag():
 
 
 @metrics.command()
-def popular_videos_per_tag():
-    """Compute Tag with most videos i.e most popular tags"""
-    path = export_metric(metrics=["popular_videos_per_tag"])
+def tag_with_most_videos():
+    """Compute Tag with most videos"""
+    path = export_metric(metrics=["tag_with_most_videos"])
     console.log(f"Exported to {path}")
 
 
 @metrics.command()
-def unpopular_videos_per_tag():
-    """Compute Tag with least videos i.e most unpopular tags"""
-    path = export_metric(metrics=["unpopular_videos_per_tag"])
+def tag_with_least_videos():
+    """Compute Tag with least videos"""
+    path = export_metric(metrics=["tag_with_least_videos"])
     console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def avg_video_duration_per_tag():
     """Compute Tag vs Avg duration of videos"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
-    df = compute_avg_video_duration_by_tag(base_df)
-
-    export_path = export(file_name="avg_video_duration_per_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["avg_video_duration_per_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def most_video_time_tag():
     """Compute Tag with most video time"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
-    df = compute_most_video_time_tag(base_df)
-
-    export_path = export(file_name="most_video_time_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["most_video_time_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def least_video_time_tag():
     """Compute Tag with least video time"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
-    df = compute_least_video_time_tag(base_df)
-
-    export_path = export(file_name="least_video_time_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["least_video_time_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def classify_videos():
     """Groups tags into fixed categories and compute metrics"""
-    path = "/tmp/classify_videos.xlsx"
 
     with console.status("[bold green]Compute metrics on categories...") as _:
-        with pd.ExcelWriter(path, engine="xlsxwriter") as writer:
-
-            def _metric(metric_func: FunctionType, columns: List[str]):
-                assert "category" in columns
-                base_df = load_preprocessed_data(columns=columns)
-                base_df = base_df.rename(columns={"category": "snippet.tags"})
-
-                metric_name = metric_func.__name__.replace("compute_", "")
-                df = metric_func(base_df)
-                df.rename(columns={"tags": "category"}, inplace=True)
-
-                sheet_name = metric_name.replace("_", "-")
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-            # Metrics
-            _metric(compute_videos_per_tag, columns=["id", "category"])
-            _metric(compute_popular_videos_by_tag, columns=["id", "category"])
-            _metric(compute_unpopular_videos_by_tag, columns=["id", "category"])
-            _metric(
-                compute_avg_video_duration_by_tag,
-                columns=["id", "category", "duration"],
-            )
-            _metric(compute_most_video_time_tag, columns=["id", "category", "duration"])
-            _metric(
-                compute_least_video_time_tag, columns=["id", "category", "duration"]
-            )
+        path = export_metric(
+            metrics=[
+                "videos_per_category",
+                "category_with_most_videos",
+                "category_with_least_videos",
+                "avg_video_duration_by_category",
+                "most_video_time_category",
+                "least_video_time_category",
+            ],
+            file_name="classify_videos_metrics",
+        )
 
     console.log(f"Exported to {path}")
 
@@ -178,20 +133,8 @@ def classify_videos():
 @metrics.command()
 def engagement_per_tag():
     """Compute engagement metrics per tag"""
-    required_cols = [
-        "id",
-        "snippet.tags",
-        "statistics.viewCount",
-        "statistics.likeCount",
-        "statistics.dislikeCount",
-        "statistics.favoriteCount",
-        "statistics.commentCount",
-    ]
-    base_df = load_preprocessed_data(columns=required_cols)
-    df = compute_engagement_per_tag(base_df)
-    export_path = export(file_name="engagement_per_tag", sheets={"metrics": df})
-
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["engagement_per_tag"])
+    console.log(f"Exported to {path}")
 
 
 if __name__ == "__main__":

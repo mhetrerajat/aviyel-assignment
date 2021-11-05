@@ -1,5 +1,6 @@
 import re
 import string
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -7,6 +8,8 @@ from gensim.parsing.porter import PorterStemmer
 from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
+
+from core.io import load_preprocessed_data
 
 pd.options.mode.chained_assignment = None
 
@@ -18,6 +21,23 @@ ISO_8601 = re.compile(
     "(?:(?P<seconds>\d+)S)?"
     ")?"
 )
+
+__all__ = [
+    "cleanup_video_data",
+    "compute_videos_per_tag",
+    "compute_videos_per_category",
+    "compute_tag_with_most_videos",
+    "compute_category_with_most_videos",
+    "compute_tag_with_least_videos",
+    "compute_category_with_least_videos",
+    "compute_avg_video_duration_by_tag",
+    "compute_avg_video_duration_by_category",
+    "compute_most_video_time_tag",
+    "compute_most_video_time_category",
+    "compute_least_video_time_tag",
+    "compute_least_video_time_category",
+    "compute_engagement_per_tag",
+]
 
 
 def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -98,72 +118,151 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def compute_videos_per_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    df = base_df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
-        subset=["id", "tags"]
-    )
+def _compute_nvideos_metric(against_col_name: str) -> pd.DataFrame:
+    """Computes number of videos against specified column"""
 
+    col_name = "snippet.tags" if against_col_name == "tag" else "category"
+
+    # Fetch required columns from the preprocessed storage
+    base_df = load_preprocessed_data(columns=["id", col_name])
+
+    # Rename columns as per requested column name
+    if col_name != against_col_name:
+        df = base_df.rename(columns={col_name: against_col_name})
+
+    df = base_df.drop_duplicates(subset=["id", against_col_name])
+
+    # Count number of videos for each `against column`
     df = (
-        df.groupby(by=["tags"], as_index=False)
+        df.groupby(by=[against_col_name], as_index=False)
         .agg({"id": pd.Series.nunique})
         .rename(columns={"id": "n_videos"})
     )
+
     return df
 
 
-def compute_popular_videos_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    return compute_videos_per_tag(base_df).sort_values(
-        by=["n_videos"], ascending=[False]
+def compute_videos_per_tag() -> pd.DataFrame:
+    """Count number of videos per tag"""
+    return _compute_nvideos_metric(against_col_name="tag")
+
+
+def compute_videos_per_category() -> pd.DataFrame:
+    """Count number of videos per category"""
+    return _compute_nvideos_metric(against_col_name="category")
+
+
+def compute_tag_with_most_videos() -> pd.DataFrame:
+    return (
+        _compute_nvideos_metric(against_col_name="tag")
+        .sort_values(by=["n_videos"], ascending=[False])
+        .head(1)
     )
 
 
-def compute_unpopular_videos_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    return compute_videos_per_tag(base_df).sort_values(
-        by=["n_videos"], ascending=[True]
+def compute_category_with_most_videos() -> pd.DataFrame:
+    return (
+        _compute_nvideos_metric(against_col_name="category")
+        .sort_values(by=["n_videos"], ascending=[False])
+        .head(1)
     )
 
 
-def _compute_video_duration_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    df = base_df.rename(columns={"snippet.tags": "tags"}).drop_duplicates(
-        subset=["id", "tags", "duration"]
+def compute_tag_with_least_videos() -> pd.DataFrame:
+    return (
+        _compute_nvideos_metric(against_col_name="tag")
+        .sort_values(by=["n_videos"], ascending=[True])
+        .head(1)
     )
+
+
+def compute_category_with_least_videos() -> pd.DataFrame:
+    return (
+        _compute_nvideos_metric(against_col_name="category")
+        .sort_values(by=["n_videos"], ascending=[True])
+        .head(1)
+    )
+
+
+def _compute_video_duration_metric(
+    against_col_name: str, agg_func: Callable
+) -> pd.DataFrame:
+    col_name = "snippet.tags" if against_col_name == "tag" else "category"
+
+    # Fetch required columns from the preprocessed storage
+    base_df = load_preprocessed_data(columns=["id", col_name, "duration"])
+
+    # Rename columns as per requested column name
+    if col_name != against_col_name:
+        df = base_df.rename(columns={col_name: against_col_name})
+
+    df = base_df.drop_duplicates(subset=["id", against_col_name, "duration"])
+
+    df = df.groupby(by=[against_col_name], as_index=False).agg({"duration": agg_func})
+
     return df
 
 
-def compute_avg_video_duration_by_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    df = _compute_video_duration_by_tag(base_df)
-    df = (
-        df.groupby(by=["tags"], as_index=False)
-        .agg({"duration": np.mean})
+def compute_avg_video_duration_by_tag() -> pd.DataFrame:
+    return _compute_video_duration_metric(
+        against_col_name="tag", agg_func=np.mean
+    ).sort_values(by=["duration"], ascending=[False])
+
+
+def compute_avg_video_duration_by_category() -> pd.DataFrame:
+    return _compute_video_duration_metric(
+        against_col_name="category", agg_func=np.mean
+    ).sort_values(by=["duration"], ascending=[False])
+
+
+def compute_most_video_time_tag() -> pd.DataFrame:
+    return (
+        _compute_video_duration_metric(against_col_name="tag", agg_func=np.sum)
         .sort_values(by=["duration"], ascending=[False])
+        .head(1)
     )
-    return df
 
 
-def compute_most_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    df = _compute_video_duration_by_tag(base_df)
-    df = (
-        df.groupby(by=["tags"], as_index=False)
-        .agg({"duration": np.sum})
+def compute_most_video_time_category() -> pd.DataFrame:
+    return (
+        _compute_video_duration_metric(against_col_name="category", agg_func=np.sum)
         .sort_values(by=["duration"], ascending=[False])
-    ).head(1)
-    return df
+        .head(1)
+    )
+
+
+def compute_least_video_time_tag() -> pd.DataFrame:
+    return (
+        _compute_video_duration_metric(against_col_name="tag", agg_func=np.sum)
+        .sort_values(by=["duration"], ascending=[True])
+        .head(1)
+    )
+
+
+def compute_least_video_time_category() -> pd.DataFrame:
+    return (
+        _compute_video_duration_metric(against_col_name="category", agg_func=np.sum)
+        .sort_values(by=["duration"], ascending=[True])
+        .head(1)
+    )
 
 
 def compute_engagement_per_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+    # Fetch required columns from the preprocessed storage
+    base_df = load_preprocessed_data(
+        columns=[
+            "id",
+            "snippet.tags",
+            "statistics.viewCount",
+            "statistics.likeCount",
+            "statistics.dislikeCount",
+            "statistics.favoriteCount",
+            "statistics.commentCount",
+        ]
+    )
     df = base_df.drop_duplicates(subset=["id", "snippet.tags"])
     rename_cols = {x: x.split(".")[-1] for x in df.columns}
     df = df.rename(columns=rename_cols)
     df = df.drop(["id"], axis=1)
     df = df.groupby(by=["tags"], as_index=False).agg(np.sum)
-    return df
-
-
-def compute_least_video_time_tag(base_df: pd.DataFrame) -> pd.DataFrame:
-    df = _compute_video_duration_by_tag(base_df)
-    df = (
-        df.groupby(by=["tags"], as_index=False)
-        .agg({"duration": np.sum})
-        .sort_values(by=["duration"], ascending=[True])
-    ).head(1)
     return df
