@@ -4,7 +4,7 @@ import shutil
 import tempfile
 from enum import Enum, unique
 from pathlib import Path, PosixPath
-from typing import Generator, List, Optional, Union
+from typing import Dict, Generator, List, Optional, Union
 from uuid import uuid4
 
 import pandas as pd
@@ -83,3 +83,14 @@ def add_delete_marker(
         dirs = Path("/tmp/").glob(f"aviyel__{data_type.value}*")
         for dir in dirs:
             _add_delete_marker_for_file(dir)
+
+
+def export(file_name: str, sheets: Dict[str, pd.DataFrame]) -> str:
+    """Export data in xlsx format"""
+    export_path = os.path.join("/tmp/", f"{file_name}.xlsx")
+
+    with pd.ExcelWriter(export_path, engine="xlsxwriter") as writer:
+        for sheet_name, data in sheets.items():
+            data.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    return export_path

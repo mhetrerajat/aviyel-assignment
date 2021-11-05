@@ -16,7 +16,14 @@ from core.analyze import (
     compute_videos_per_tag,
     compute_engagement_per_tag,
 )
-from core.io import DataType, add_delete_marker, dump, load_preprocessed_data, loads
+from core.io import (
+    DataType,
+    add_delete_marker,
+    dump,
+    load_preprocessed_data,
+    loads,
+    export,
+)
 from core.youtube_api import fetch_video_details, search
 
 console = Console()
@@ -85,9 +92,8 @@ def videos_per_tag():
     """Compute Tags Vs number of videos"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
     df = compute_videos_per_tag(base_df)
-    path = "/tmp/videos_per_tag.csv"
-    df.to_csv(path)
-    console.log(f"Exported to {path}")
+    export_path = export(file_name="videos_per_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -95,9 +101,9 @@ def popular_videos_per_tag():
     """Compute Tag with most videos i.e most popular tags"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
     df = compute_popular_videos_by_tag(base_df)
-    path = "/tmp/popular_videos_per_tag.csv"
-    df.to_csv(path)
-    console.log(f"Exported to {path}")
+
+    export_path = export(file_name="popular_videos_per_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -105,9 +111,9 @@ def unpopular_videos_per_tag():
     """Compute Tag with least videos i.e most unpopular tags"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
     df = compute_unpopular_videos_by_tag(base_df)
-    path = "/tmp/unpopular_videos_per_tag.csv"
-    df.to_csv(path)
-    console.log(f"Exported to {path}")
+
+    export_path = export(file_name="unpopular_videos_per_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -115,9 +121,9 @@ def avg_video_duration_per_tag():
     """Compute Tag vs Avg duration of videos"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
     df = compute_avg_video_duration_by_tag(base_df)
-    path = "/tmp/avg_video_duration_per_tag.csv"
-    df.to_csv(path)
-    console.log(f"Exported to {path}")
+
+    export_path = export(file_name="avg_video_duration_per_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -125,7 +131,9 @@ def most_video_time_tag():
     """Compute Tag with most video time"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
     df = compute_most_video_time_tag(base_df)
-    console.log(df.head(1))
+
+    export_path = export(file_name="most_video_time_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -133,7 +141,9 @@ def least_video_time_tag():
     """Compute Tag with least video time"""
     base_df = load_preprocessed_data(columns=["id", "snippet.tags", "duration"])
     df = compute_least_video_time_tag(base_df)
-    console.log(df.head(1))
+
+    export_path = export(file_name="least_video_time_tag", sheets={"metrics": df})
+    console.log(f"Exported to {export_path}")
 
 
 @metrics.command()
@@ -186,10 +196,9 @@ def engagement_per_tag():
     ]
     base_df = load_preprocessed_data(columns=required_cols)
     df = compute_engagement_per_tag(base_df)
-    path = "/tmp/engagement_per_tag.xlsx"
-    df.to_excel(path, sheet_name="metrics", index=False)
+    export_path = export(file_name="engagement_per_tag", sheets={"metrics": df})
 
-    console.log(f"Exported to {path}")
+    console.log(f"Exported to {export_path}")
 
 
 if __name__ == "__main__":
