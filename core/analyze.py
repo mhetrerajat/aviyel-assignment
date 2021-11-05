@@ -22,6 +22,8 @@ ISO_8601 = re.compile(
     ")?"
 )
 
+ENGLISH_LETTERS = re.compile("[^a-zA-Z0-9]+")
+
 __all__ = [
     "cleanup_video_data",
     "compute_videos_per_tag",
@@ -87,6 +89,11 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     cdf.loc[:, "processedTag"] = cdf["snippet.tags"].map(lambda x: x.split(" "))
     cdf = cdf.explode("processedTag")
+
+    # Remove non-english tags
+    isEng = lambda x: re.sub(ENGLISH_LETTERS, "", x)
+    cdf["processedTag"] = np.vectorize(isEng)(cdf["processedTag"])
+
     cdf.loc[:, "processedTag"] = (
         cdf["processedTag"]
         .map(
@@ -97,6 +104,9 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     # Remove rows with missing tags
     cdf = cdf[cdf["processedTag"] != ""]
+
+    # Remove python tag as its most common one
+    cdf = cdf[cdf["processedTag"] != "python"]
 
     def _stemmer(text: str) -> str:
         stemmer = PorterStemmer()
@@ -115,7 +125,10 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     video_df = cdf[["id"]].rename(columns={"id": "vid"})
     result = video_df.join(word_df)
 
-    kmeans = KMeans(n_clusters=8, max_iter=1000)
+    # Number of clusters decided by elbow method
+    n_cluster = 4
+
+    kmeans = KMeans(n_clusters=n_cluster, max_iter=1000)
     kmeans.fit(word_df)
     result.loc[:, "categoryCode"] = kmeans.predict(word_df)
     result = result[["vid", "categoryCode"]]
@@ -123,12 +136,31 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     # Add label for categories
     # Labels are basically most frequently used tag for that category
     rdf = pd.merge(cdf, result, left_on=["id"], right_on=["vid"], how="left")
-    ldf = rdf.groupby(by=["categoryCode"], as_index=False)["processedTag"].agg(
-        lambda x: pd.Series.mode(x).values[-1]
-    )
-    ldf = ldf.rename(columns={"processedTag": "category"})
 
-    result = pd.merge(result, ldf)
+    # # Size of each cluster
+    # rdf.drop_duplicates(subset=["vid", "categoryCode"]).groupby(
+    #     by=["categoryCode"]
+    # ).count()
+
+    grp = rdf.groupby(by=["categoryCode"], as_index=False)
+    used_label = set()
+    for category_code in rdf["categoryCode"].unique():
+        top_n_tags = (
+            grp.get_group(category_code)
+            .groupby(by=["processedTag"], as_index=False)
+            .agg({"vid": "count"})
+            .sort_values(by=["vid"], ascending=[False])
+            .head(4)["processedTag"]
+            .tolist()
+        )
+
+        label = None
+        for popular_tag in top_n_tags:
+            if popular_tag not in used_label:
+                label = popular_tag
+                used_label.add(label)
+                break
+        result.loc[result["categoryCode"] == category_code, "category"] = label
 
     return result
 
