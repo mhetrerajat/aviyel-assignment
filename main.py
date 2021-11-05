@@ -25,6 +25,7 @@ from core.io import (
     export,
 )
 from core.youtube_api import fetch_video_details, search
+from core.facade import export_metric
 
 console = Console()
 
@@ -90,30 +91,22 @@ def metrics():
 @metrics.command()
 def videos_per_tag():
     """Compute Tags Vs number of videos"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
-    df = compute_videos_per_tag(base_df)
-    export_path = export(file_name="videos_per_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["videos_per_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def popular_videos_per_tag():
     """Compute Tag with most videos i.e most popular tags"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
-    df = compute_popular_videos_by_tag(base_df)
-
-    export_path = export(file_name="popular_videos_per_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["popular_videos_per_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
 def unpopular_videos_per_tag():
     """Compute Tag with least videos i.e most unpopular tags"""
-    base_df = load_preprocessed_data(columns=["id", "snippet.tags"])
-    df = compute_unpopular_videos_by_tag(base_df)
-
-    export_path = export(file_name="unpopular_videos_per_tag", sheets={"metrics": df})
-    console.log(f"Exported to {export_path}")
+    path = export_metric(metrics=["unpopular_videos_per_tag"])
+    console.log(f"Exported to {path}")
 
 
 @metrics.command()
