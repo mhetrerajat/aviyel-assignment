@@ -1,29 +1,29 @@
 %data.raw <- 
-    python main.py raw
+    python main.py --no-title raw
 
 %data.preprocess <- %data.raw
-    python main.py preprocess
+    python main.py --no-title preprocess
 
 %metrics.videos-per-tag <- %data.preprocess
-    python main.py metrics videos-per-tag
+    python main.py --no-title metrics videos-per-tag
 
 %metrics.tag-with-most-videos <- %data.preprocess
-    python main.py metrics tag-with-most-videos
+    python main.py --no-title metrics tag-with-most-videos
 
 %metrics.tag-with-least-videos <- %data.preprocess
-    python main.py metrics tag-with-least-videos
+    python main.py --no-title metrics tag-with-least-videos
 
 %metrics.most-video-time-tag <- %data.preprocess
-    python main.py metrics most-video-time-tag
+    python main.py --no-title metrics most-video-time-tag
 
 %metrics.least-video-time-tag <- %data.preprocess
-    python main.py metrics least-video-time-tag
+    python main.py --no-title metrics least-video-time-tag
 
 %metrics.avg-video-duration-per-tag <- %data.preprocess
-    python main.py metrics avg-video-duration-per-tag
+    python main.py --no-title metrics avg-video-duration-per-tag
 
 %metrics.engagement-per-tag  <- %data.preprocess
-    python main.py metrics engagement-per-tag
+    python main.py --no-title metrics engagement-per-tag
 
 %metrics.classify-videos  <- %data.preprocess
-    python main.py metrics classify-videos
+    python main.py --no-title metrics classify-videos

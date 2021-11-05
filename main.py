@@ -11,8 +11,15 @@ console = Console()
 
 
 @click.group()
-def cli():
-    pass
+@click.option(
+    "--no-title", default=False, is_flag=True, help="Do not print title in the terminal"
+)
+def cli(no_title):
+    if not no_title:
+        title = """
+            Aviyel Data Assignment
+        """
+        console.print(Markdown(title))
 
 
 @cli.command()
@@ -120,7 +127,7 @@ def classify_videos():
                 "videos_per_category",
                 "category_with_most_videos",
                 "category_with_least_videos",
-                "avg_video_duration_by_category",
+                "avg_video_duration_per_category",
                 "most_video_time_category",
                 "least_video_time_category",
             ],
@@ -138,8 +145,4 @@ def engagement_per_tag():
 
 
 if __name__ == "__main__":
-    title = """
-        Aviyel Data Assignment
-    """
-    console.print(Markdown(title))
     cli()

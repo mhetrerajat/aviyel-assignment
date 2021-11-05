@@ -128,7 +128,7 @@ def _compute_nvideos_metric(against_col_name: str) -> pd.DataFrame:
 
     # Rename columns as per requested column name
     if col_name != against_col_name:
-        df = base_df.rename(columns={col_name: against_col_name})
+        base_df = base_df.rename(columns={col_name: against_col_name})
 
     df = base_df.drop_duplicates(subset=["id", against_col_name])
 
@@ -194,7 +194,7 @@ def _compute_video_duration_metric(
 
     # Rename columns as per requested column name
     if col_name != against_col_name:
-        df = base_df.rename(columns={col_name: against_col_name})
+        base_df = base_df.rename(columns={col_name: against_col_name})
 
     df = base_df.drop_duplicates(subset=["id", against_col_name, "duration"])
 
@@ -203,13 +203,13 @@ def _compute_video_duration_metric(
     return df
 
 
-def compute_avg_video_duration_by_tag() -> pd.DataFrame:
+def compute_avg_video_duration_per_tag() -> pd.DataFrame:
     return _compute_video_duration_metric(
         against_col_name="tag", agg_func=np.mean
     ).sort_values(by=["duration"], ascending=[False])
 
 
-def compute_avg_video_duration_by_category() -> pd.DataFrame:
+def compute_avg_video_duration_per_category() -> pd.DataFrame:
     return _compute_video_duration_metric(
         against_col_name="category", agg_func=np.mean
     ).sort_values(by=["duration"], ascending=[False])
@@ -247,7 +247,7 @@ def compute_least_video_time_category() -> pd.DataFrame:
     )
 
 
-def compute_engagement_per_tag(base_df: pd.DataFrame) -> pd.DataFrame:
+def compute_engagement_per_tag() -> pd.DataFrame:
     # Fetch required columns from the preprocessed storage
     base_df = load_preprocessed_data(
         columns=[
