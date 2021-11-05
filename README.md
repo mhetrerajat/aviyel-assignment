@@ -35,3 +35,17 @@ export GOOGLE_API_KEY=<YOUR_API_KEY>
 ```bash
 python main.py
 ```
+
+### ETL Pipeline
+
+Install pre-requisites using following commands
+
+```bash
+brew install drake graphviz
+```
+
+- Trigger the pipeline
+
+```bash
+drake +%@metrics
+```
