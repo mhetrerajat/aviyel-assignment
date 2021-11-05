@@ -12,12 +12,15 @@ import pyarrow as pa
 import pyarrow.dataset as ds
 import pyarrow.parquet as pq
 
+from core.exceptions import DataTypeNotSupported
+
 
 @unique
 class DataType(Enum):
     YOUTUBE_SEARCH = "ytsearch"
     YOUTUBE_VIDEO = "ytvideo"
     PREPROCESSED = "preprocessed"
+    DATA_LAKE = "datalake"
 
 
 def _dump_as_json(data: List, data_type: DataType) -> str:
@@ -46,9 +49,22 @@ def dump(data: Union[List, pd.DataFrame], data_type: DataType) -> str:
     )
 
 
-def load_preprocessed_data(columns: List[str]) -> pd.DataFrame:
-    dataset = ds.dataset("/tmp/aviyel__preprocessed/")
-    table = dataset.scanner(columns=columns).to_table()
+def load_processed_data(
+    columns: Optional[List[str]] = None,
+    data_type: Optional[DataType] = DataType.DATA_LAKE,
+) -> pd.DataFrame:
+
+    if data_type not in [DataType.PREPROCESSED, DataType.DATA_LAKE]:
+        raise DataTypeNotSupported(
+            f"{data_type.name} does not belong to processed data"
+        )
+
+    dataset = ds.dataset(f"/tmp/aviyel__{data_type.value}/")
+
+    scanner_kwargs = {}
+    if columns:
+        scanner_kwargs["columns"] = columns
+    table = dataset.scanner(**scanner_kwargs).to_table()
     return table.to_pandas()
 
 

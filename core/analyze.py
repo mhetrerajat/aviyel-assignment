@@ -9,7 +9,7 @@ from gensim.parsing.preprocessing import remove_stopwords
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from core.io import load_preprocessed_data
+from core.io import DataType, load_processed_data
 
 pd.options.mode.chained_assignment = None
 
@@ -68,6 +68,12 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[:, "duration"] = (
         df["seconds"] + (df["minutes"] * 60) + (df["hours"] * 60 * 60)
     )
+
+    return df
+
+
+def categorize_videos() -> pd.DataFrame:
+    df = load_processed_data(data_type=DataType.PREPROCESSED)
 
     # Compute category for the videos
     cdf = _categorize_videos(df)
@@ -144,6 +150,7 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     grp = rdf.groupby(by=["categoryCode"], as_index=False)
     used_label = set()
+    print(rdf["categoryCode"].unique())
     for category_code in rdf["categoryCode"].unique():
         top_n_tags = (
             grp.get_group(category_code)
@@ -171,7 +178,7 @@ def _compute_nvideos_metric(against_col_name: str) -> pd.DataFrame:
     col_name = "snippet.tags" if against_col_name == "tag" else "category"
 
     # Fetch required columns from the preprocessed storage
-    base_df = load_preprocessed_data(columns=["id", col_name])
+    base_df = load_processed_data(columns=["id", col_name])
 
     # Rename columns as per requested column name
     if col_name != against_col_name:
@@ -237,7 +244,7 @@ def _compute_video_duration_metric(
     col_name = "snippet.tags" if against_col_name == "tag" else "category"
 
     # Fetch required columns from the preprocessed storage
-    base_df = load_preprocessed_data(columns=["id", col_name, "duration"])
+    base_df = load_processed_data(columns=["id", col_name, "duration"])
 
     # Rename columns as per requested column name
     if col_name != against_col_name:
@@ -296,7 +303,7 @@ def compute_least_video_time_category() -> pd.DataFrame:
 
 def compute_engagement_per_tag() -> pd.DataFrame:
     # Fetch required columns from the preprocessed storage
-    base_df = load_preprocessed_data(
+    base_df = load_processed_data(
         columns=[
             "id",
             "snippet.tags",

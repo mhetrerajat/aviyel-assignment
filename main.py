@@ -2,7 +2,7 @@ import click
 from rich.console import Console
 from rich.markdown import Markdown
 
-from core.analyze import cleanup_video_data
+from core.analyze import categorize_videos, cleanup_video_data
 from core.facade import export_metric
 from core.io import DataType, add_delete_marker, dump, loads
 from core.youtube_api import fetch_video_details, search
@@ -30,9 +30,10 @@ def raw():
         add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
         add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
         add_delete_marker(data_type=DataType.PREPROCESSED)
+        add_delete_marker(data_type=DataType.DATA_LAKE)
 
     with console.status("[bold green]Fetching search results...") as _:
-        for data in search(keyword="python"):
+        for data in search(keyword="python", max_results=500, max_per_request=50):
             num_fetched = len(data["items"])
 
             path = dump(data=data, data_type=DataType.YOUTUBE_SEARCH)
@@ -62,11 +63,16 @@ def preprocess():
             df = cleanup_video_data(video_df)
             path = dump(data=df, data_type=DataType.PREPROCESSED)
 
-        console.log(f"Stored preprocessed data at {path}")
+    with console.status("[bold green] Categorize videos using tags...") as _:
+        df = categorize_videos()
+        path = dump(data=df, data_type=DataType.DATA_LAKE)
+
+    console.log(f"Stored preprocessed data at {path}")
 
     with console.status("[bold red] Truncate old data...") as _:
         add_delete_marker(data_type=DataType.YOUTUBE_VIDEO)
         add_delete_marker(data_type=DataType.YOUTUBE_SEARCH)
+        add_delete_marker(data_type=DataType.PREPROCESSED)
 
 
 @cli.group()
