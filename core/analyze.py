@@ -77,8 +77,7 @@ def cleanup_video_data(df: pd.DataFrame) -> pd.DataFrame:
 def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     def _preprocess_text(text: str) -> str:
         return (
-            remove_stopwords(text)
-            .translate(str.maketrans("", "", string.punctuation))
+            text.translate(str.maketrans("", "", string.punctuation))
             .translate(str.maketrans("", "", string.digits))
             .lower()
         )
@@ -88,9 +87,16 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     cdf.loc[:, "processedTag"] = cdf["snippet.tags"].map(lambda x: x.split(" "))
     cdf = cdf.explode("processedTag")
-    cdf.loc[:, "processedTag"] = cdf["processedTag"].map(
-        _preprocess_text,
+    cdf.loc[:, "processedTag"] = (
+        cdf["processedTag"]
+        .map(
+            _preprocess_text,
+        )
+        .map(remove_stopwords)
     )
+
+    # Remove rows with missing tags
+    cdf = cdf[cdf["processedTag"] != ""]
 
     def _stemmer(text: str) -> str:
         stemmer = PorterStemmer()
@@ -111,9 +117,18 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     kmeans = KMeans(n_clusters=8, max_iter=1000)
     kmeans.fit(word_df)
-    result.loc[:, "category"] = kmeans.predict(word_df)
+    result.loc[:, "categoryCode"] = kmeans.predict(word_df)
+    result = result[["vid", "categoryCode"]]
 
-    result = result[["vid", "category"]]
+    # Add label for categories
+    # Labels are basically most frequently used tag for that category
+    rdf = pd.merge(cdf, result, left_on=["id"], right_on=["vid"], how="left")
+    ldf = rdf.groupby(by=["categoryCode"], as_index=False)["processedTag"].agg(
+        lambda x: pd.Series.mode(x).values[-1]
+    )
+    ldf = ldf.rename(columns={"processedTag": "category"})
+
+    result = pd.merge(result, ldf)
 
     return result
 
