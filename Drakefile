@@ -1,0 +1,29 @@
+%data.raw <- 
+    python main.py raw
+
+%data.preprocess <- %data.raw
+    python main.py preprocess
+
+%metrics.videos-per-tag <- %data.preprocess
+    python main.py metrics videos-per-tag
+
+%metrics.popular-videos-per-tag <- %data.preprocess
+    python main.py metrics popular-videos-per-tag
+
+%metrics.unpopular-videos-per-tag <- %data.preprocess
+    python main.py metrics unpopular-videos-per-tag
+
+%metrics.most-video-time-tag <- %data.preprocess
+    python main.py metrics most-video-time-tag
+
+%metrics.least-video-time-tag <- %data.preprocess
+    python main.py metrics least-video-time-tag
+
+%metrics.avg-video-duration-per-tag <- %data.preprocess
+    python main.py metrics avg-video-duration-per-tag
+
+%metrics.engagement-per-tag  <- %data.preprocess
+    python main.py metrics engagement-per-tag
+
+%metrics.classify-videos  <- %data.preprocess
+    python main.py metrics classify-videos

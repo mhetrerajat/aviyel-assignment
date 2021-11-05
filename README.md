@@ -38,6 +38,8 @@ python main.py
 
 ### ETL Pipeline
 
+![ETL](./drake.png)
+
 Install pre-requisites using following commands
 
 ```bash
