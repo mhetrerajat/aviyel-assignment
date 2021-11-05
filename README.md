@@ -13,6 +13,7 @@
 - Classify videos into categories using the tags. Categories tags into groups. Compute above metrics for each category
 - Bonus
   - Compute engagement metrics per tag. It includes view, like, dislike, favourite, comment counts
+  - ETL pipeline configured using [drake](https://github.com/Factual/drake)
 
 ## Usage
 
