@@ -10,7 +10,7 @@
   - Tags vs Avg duration of videos
   - Tag with most video time
   - Tag with least video time
-- Classify videos into categories using the tags. Categories tags into groups. Compute above metrics for each category
+- Classify videos into categories created by grouping tags. Compute above metrics for each category
 - Bonus
   - Compute engagement metrics per tag. It includes view, like, dislike, favourite, comment counts
   - ETL pipeline configured using [drake](https://github.com/Factual/drake)
