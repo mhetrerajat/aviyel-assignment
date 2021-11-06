@@ -116,7 +116,7 @@ Each metric computation saves the data in `xlsx` file and the storage path is pr
 
 ### Trigger ETL Pipeline
 
-![ETL](./drake.png)
+![ETL](./docs/images/drake.png)
 
 Install pre-requisites using following commands
 

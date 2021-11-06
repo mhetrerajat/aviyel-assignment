@@ -133,3 +133,5 @@ dmypy.json
 
 # Drake
 .drake
+
+*.pdf
