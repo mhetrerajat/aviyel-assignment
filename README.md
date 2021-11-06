@@ -65,8 +65,13 @@ python main.py --help
 
 </details>
 
+### Execution Instruction
+
 The ETL pipeline involves three stages i.e `raw`, `preprocess` and `metrics`. Each one of them depends on previous stage so they need to be triggered in specific order. This is simplified by configuring an ETL pipeline and details about trigger a pipeline is show in [here](#trigger-etl-pipeline)
-However, each stage can be run independently for debugging purpose. Instructions to run stage is as follows,
+
+NOTE: Recommended way to execute is using [Drake based ETL Pipeline](#trigger-etl-pipeline)
+
+However, each stage can be run independently for debugging purpose. Instructions to run each stage is as follows,
 
 - Run following command to execute `raw` stage. This fetches data using YouTube Data API. It fetches search query result for `python` keyword and then fetches video details for each search result
 
