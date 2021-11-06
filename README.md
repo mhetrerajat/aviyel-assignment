@@ -148,3 +148,6 @@ Each stage has its responsibility and workings. Implementing them separately mak
 
 _Question - Why preprocess stage stores data in parquet format?_ <br/>
 _Answer_ - `parquet` is a columnar data format i.e if data consumption involves fetching multiple columns (with all rows) rather than multiple rows (with all columns) it will perform better and also save memory. Also, it stores the data with `snappy` compression which performs better compared to more commonly known formats like `gzip`. One more benefit of using `parquet` is it supports partitioning data which makes the data consumption efficient.
+
+_Question - How videos are being categorised ?_ <br/>
+_Answer_ - The categories are created by grouping the tags/keywords into groups and then each video is being assigned with a category that is most suitable to it. The tags/keywords are cleaned with standard text processing techniques like stemming and then K-means clustering is used to create a cluster of similar tags. The algorithm is given a word matrix that has TF-IDF scores for ngram 1 and 2 to form better clusters. The standard elbow method is used to decide on the number of clusters.
