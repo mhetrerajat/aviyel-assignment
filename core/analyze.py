@@ -150,7 +150,6 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
 
     grp = rdf.groupby(by=["categoryCode"], as_index=False)
     used_label = set()
-    print(rdf["categoryCode"].unique())
     for category_code in rdf["categoryCode"].unique():
         top_n_tags = (
             grp.get_group(category_code)
@@ -172,23 +171,24 @@ def _categorize_videos(df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def _compute_nvideos_metric(against_col_name: str) -> pd.DataFrame:
+def _compute_nvideos_metric(for_categories: bool = False) -> pd.DataFrame:
     """Computes number of videos against specified column"""
 
-    col_name = "snippet.tags" if against_col_name == "tag" else "category"
-
     # Fetch required columns from the preprocessed storage
-    base_df = load_processed_data(columns=["id", col_name])
+    required_cols = ["id", "snippet.tags"]
+    if for_categories:
+        required_cols.append("category")
+    base_df = load_processed_data(columns=required_cols)
 
-    # Rename columns as per requested column name
-    if col_name != against_col_name:
-        base_df = base_df.rename(columns={col_name: against_col_name})
+    df = base_df.drop_duplicates(subset=required_cols)
 
-    df = base_df.drop_duplicates(subset=["id", against_col_name])
+    # Rename columns
+    df = df.rename(columns={"snippet.tags": "tags"})
 
     # Count number of videos for each `against column`
+    grp_cols = ["category", "tags"] if for_categories else ["tags"]
     df = (
-        df.groupby(by=[against_col_name], as_index=False)
+        df.groupby(by=grp_cols, as_index=False)
         .agg({"id": pd.Series.nunique})
         .rename(columns={"id": "n_videos"})
     )
@@ -198,17 +198,17 @@ def _compute_nvideos_metric(against_col_name: str) -> pd.DataFrame:
 
 def compute_videos_per_tag() -> pd.DataFrame:
     """Count number of videos per tag"""
-    return _compute_nvideos_metric(against_col_name="tag")
+    return _compute_nvideos_metric()
 
 
 def compute_videos_per_category() -> pd.DataFrame:
     """Count number of videos per category"""
-    return _compute_nvideos_metric(against_col_name="category")
+    return _compute_nvideos_metric(for_categories=True)
 
 
 def compute_tag_with_most_videos() -> pd.DataFrame:
     return (
-        _compute_nvideos_metric(against_col_name="tag")
+        _compute_nvideos_metric()
         .sort_values(by=["n_videos"], ascending=[False])
         .head(1)
     )
@@ -216,62 +216,63 @@ def compute_tag_with_most_videos() -> pd.DataFrame:
 
 def compute_category_with_most_videos() -> pd.DataFrame:
     return (
-        _compute_nvideos_metric(against_col_name="category")
+        _compute_nvideos_metric(for_categories=True)
         .sort_values(by=["n_videos"], ascending=[False])
-        .head(1)
+        .groupby(by=["category"], as_index=False)
+        .first()
     )
 
 
 def compute_tag_with_least_videos() -> pd.DataFrame:
     return (
-        _compute_nvideos_metric(against_col_name="tag")
-        .sort_values(by=["n_videos"], ascending=[True])
-        .head(1)
+        _compute_nvideos_metric().sort_values(by=["n_videos"], ascending=[True]).head(1)
     )
 
 
 def compute_category_with_least_videos() -> pd.DataFrame:
     return (
-        _compute_nvideos_metric(against_col_name="category")
+        _compute_nvideos_metric(for_categories=True)
         .sort_values(by=["n_videos"], ascending=[True])
-        .head(1)
+        .groupby(by=["category"], as_index=False)
+        .first()
     )
 
 
 def _compute_video_duration_metric(
-    against_col_name: str, agg_func: Callable
+    agg_func: Callable, for_categories: bool = False
 ) -> pd.DataFrame:
-    col_name = "snippet.tags" if against_col_name == "tag" else "category"
 
     # Fetch required columns from the preprocessed storage
-    base_df = load_processed_data(columns=["id", col_name, "duration"])
+    required_cols = ["id", "snippet.tags", "duration"]
+    if for_categories:
+        required_cols.append("category")
+    base_df = load_processed_data(columns=required_cols)
+    df = base_df.drop_duplicates(subset=required_cols)
 
     # Rename columns as per requested column name
-    if col_name != against_col_name:
-        base_df = base_df.rename(columns={col_name: against_col_name})
+    df = df.rename(columns={"snippet.tags": "tag"})
 
-    df = base_df.drop_duplicates(subset=["id", against_col_name, "duration"])
-
-    df = df.groupby(by=[against_col_name], as_index=False).agg({"duration": agg_func})
+    grp_cols = ["category", "tag"] if for_categories else ["tag"]
+    df = df.groupby(by=grp_cols, as_index=False).agg({"duration": agg_func})
 
     return df
 
 
 def compute_avg_video_duration_per_tag() -> pd.DataFrame:
-    return _compute_video_duration_metric(
-        against_col_name="tag", agg_func=np.mean
-    ).sort_values(by=["duration"], ascending=[False])
+    return _compute_video_duration_metric(agg_func=np.mean).sort_values(
+        by=["duration"], ascending=[False]
+    )
 
 
 def compute_avg_video_duration_per_category() -> pd.DataFrame:
     return _compute_video_duration_metric(
-        against_col_name="category", agg_func=np.mean
+        agg_func=np.mean, for_categories=True
     ).sort_values(by=["duration"], ascending=[False])
 
 
 def compute_most_video_time_tag() -> pd.DataFrame:
     return (
-        _compute_video_duration_metric(against_col_name="tag", agg_func=np.sum)
+        _compute_video_duration_metric(agg_func=np.sum)
         .sort_values(by=["duration"], ascending=[False])
         .head(1)
     )
@@ -279,15 +280,16 @@ def compute_most_video_time_tag() -> pd.DataFrame:
 
 def compute_most_video_time_category() -> pd.DataFrame:
     return (
-        _compute_video_duration_metric(against_col_name="category", agg_func=np.sum)
+        _compute_video_duration_metric(agg_func=np.sum, for_categories=True)
         .sort_values(by=["duration"], ascending=[False])
-        .head(1)
+        .groupby(by=["category"], as_index=False)
+        .first()
     )
 
 
 def compute_least_video_time_tag() -> pd.DataFrame:
     return (
-        _compute_video_duration_metric(against_col_name="tag", agg_func=np.sum)
+        _compute_video_duration_metric(agg_func=np.sum)
         .sort_values(by=["duration"], ascending=[True])
         .head(1)
     )
@@ -295,9 +297,10 @@ def compute_least_video_time_tag() -> pd.DataFrame:
 
 def compute_least_video_time_category() -> pd.DataFrame:
     return (
-        _compute_video_duration_metric(against_col_name="category", agg_func=np.sum)
+        _compute_video_duration_metric(agg_func=np.sum, for_categories=True)
         .sort_values(by=["duration"], ascending=[True])
-        .head(1)
+        .groupby(by=["category"], as_index=False)
+        .first()
     )
 
 
