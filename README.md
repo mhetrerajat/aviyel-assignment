@@ -14,6 +14,7 @@
 - Bonus
   - Compute engagement metrics per tag. It includes view, like, dislike, favourite, comment counts
   - ETL pipeline configured using [drake](https://github.com/Factual/drake)
+  - Performance analysis of the storage etc [Read More](./docs/performance.md)
 
 ## Usage
 
@@ -146,4 +147,4 @@ _Answer_ - As mentioned earlier, the ETL pipeline has three stages which are `ra
 Each stage has its own responsibility and workings. Implementing them separately makes it easy to scale as per requirement. The `raw` stage majorly involves Network I/O as it is fetching data using REST API while the `preprocess` stage is about cleaning and transforming data into appropriate format. The main resources consumed in this stage are disk and CPU/Memory. That's why they are divided into separate stages.
 
 _Question - Why preprocess stage stores data in parquet format?_ <br/>
-_Answer_ - `parquet` is a columnar data format i.e if data consumption involves fetching multiple columns (with all rows) rather than multiple rows (with all columns) it will perform better and also saves memory. Also, it stores the data with `snappy` compression which performs better compared to more commonly known format like `gzip`
+_Answer_ - `parquet` is a columnar data format i.e if data consumption involves fetching multiple columns (with all rows) rather than multiple rows (with all columns) it will perform better and also saves memory. Also, it stores the data with `snappy` compression which performs better compared to more commonly known format like `gzip`. One more benefit of using `parquet` is it supports partitioning data which makes the data consumption efficient.
